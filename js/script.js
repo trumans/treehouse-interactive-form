@@ -139,3 +139,61 @@ enablePaymentSection('credit card');
 $('#payment').on('change', function() {
   enablePaymentSection($(this).val());
 });
+
+// REGISTER
+$('button').submit( function(event) {
+  event.preventDefault();
+  console.log('HERE');
+  validateName();
+  validateEmail();
+});
+
+
+// FIELD VALIDATION
+function createErrorField(element) {
+  $(element).
+    after('<span class=error-msg style=display:none></span>');
+}
+
+function displayError(element, msg) {
+  $(element + ' + .error-msg').text(msg).show();
+}
+
+function clearError(element) {
+  $(element + ' + .error-msg').hide();
+}
+
+// Create error message field
+createErrorField('#name');
+createErrorField('#mail');
+createErrorField('#cc-num');
+createErrorField('#zip');
+createErrorField('#cvv');
+
+// Name is not blank
+function validateName() {
+  if ( $('#name').val().length === 0 ) {
+    displayError('#name', 'Name cannot be blank');
+  } else {
+    clearError('#name');
+  }
+}
+
+function validateEmail() {
+  let emailRegex = /\S+@[a-zA-z0-9\-]+\.[a-zA-Z]{2,3}$/;
+  if ( $('#mail').val().search(emailRegex) === -1 ) {
+    displayError('#mail','Must be a valid email format');
+  } else {
+    clearError('#mail');
+  }
+}
+
+function validateCC() {
+  let ccRegex = /^[0-9]{13,16}$/
+  if ( $('#cc-num').val().search(ccRegex) === -1 ) {
+    displayError('#cc-num',
+    'Credit card number must be between 13 and 16 digits');
+  } else {
+    clearError('#cc-num');
+  }
+}
