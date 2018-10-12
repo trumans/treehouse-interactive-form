@@ -1,3 +1,15 @@
+// Functions named xyzIsInvalid return 1 if xyz file is invalid, 0 otherwise
+
+// Set listener on name
+$('#name').on('keyup', function() {
+  isNameInvalid();
+});
+
+// Set listener on email
+$('#mail').on('keyup', function(event) {
+    isEmailInvalid();
+});
+
 // Initially hide Other Job Title field.
 // Set listener to show and hide it related to Other option
 $('#other-title').hide();
@@ -140,27 +152,53 @@ $('#payment').on('change', function() {
   enablePaymentSection($(this).val());
 });
 
+function CcIsChecked() {
+  return $('#payment').val() === 'credit card';
+}
+
+// Set listener on card number
+$('#cc-no').on('keyup', function(event) {
+    isCardInvalid();
+});
+
+// Set listener on zip code
+$('#zip').on('keyup', function(event) {
+    isZipInvalid();
+});
+
+// Set listener on CVV
+$('#cvv').on('keyup', function(event) {
+    isCvvInvalid();
+});
+
+
 // REGISTER
-$('button').submit( function(event) {
+$('button[type="submit"]').on('click', function(event) {
   event.preventDefault();
-  console.log('HERE');
-  validateName();
-  validateEmail();
+  let errorCount = isNameInvalid() + isEmailInvalid();
+  if ( CcIsChecked() )
+    errorCount += isCardInvalid() + isZipInvalid() + isCvvInvalid();
+  if ( errorCount === 0 ) {
+    $('form').submit();
+    alert('Your registration is submitted or something similiar happened.');
+  }
 });
 
 
 // FIELD VALIDATION
 function createErrorField(element) {
   $(element).
-    after('<span class=error-msg style=display:none></span>');
+    after('<p class=error-msg style=display:none></p>');
 }
 
 function displayError(element, msg) {
-  $(element + ' + .error-msg').text(msg).show();
+  $(element + ' + .error-msg').html(msg + '<br><br>').show();
+  $(element).addClass('has-error');
 }
 
 function clearError(element) {
   $(element + ' + .error-msg').hide();
+  $(element).removeClass('has-error');
 }
 
 // Create error message field
@@ -171,29 +209,41 @@ createErrorField('#zip');
 createErrorField('#cvv');
 
 // Name is not blank
-function validateName() {
-  if ( $('#name').val().length === 0 ) {
-    displayError('#name', 'Name cannot be blank');
-  } else {
-    clearError('#name');
-  }
+function isNameInvalid() {
+  let invalid = $('#name').val().length === 0;
+  invalid ? displayError('#name', 'Name cannot be blank')
+          : clearError('#name');
+  return invalid ? 1 : 0;
 }
 
-function validateEmail() {
+function isEmailInvalid() {
   let emailRegex = /\S+@[a-zA-z0-9\-]+\.[a-zA-Z]{2,3}$/;
-  if ( $('#mail').val().search(emailRegex) === -1 ) {
-    displayError('#mail','Must be a valid email format');
-  } else {
-    clearError('#mail');
-  }
+  let invalid = $('#mail').val().search(emailRegex) === -1;
+  invalid ? displayError('#mail','Email must be a valid email format')
+          : clearError('#mail');
+  return invalid ? 1 : 0;
 }
 
-function validateCC() {
-  let ccRegex = /^[0-9]{13,16}$/
-  if ( $('#cc-num').val().search(ccRegex) === -1 ) {
-    displayError('#cc-num',
-    'Credit card number must be between 13 and 16 digits');
-  } else {
-    clearError('#cc-num');
-  }
+function isCardInvalid() {
+  let ccRegex = /^[0-9]{13,16}$/;
+  let invalid = $('#cc-num').val().search(ccRegex) === -1;
+  invalid ? displayError('#cc-num', 'Card number must be 13 to 16 digits')
+          : clearError('#cc-num');
+  return invalid ? 1 : 0;
+}
+
+function isZipInvalid() {
+  let zipRegex = /^[0-9]{5}$/;
+  let invalid = $('#zip').val().search(zipRegex) === -1;
+  invalid ? displayError('#zip', 'Zip code must be 5 digits')
+          : clearError('#zip');
+  return invalid ? 1 : 0;
+}
+
+function isCvvInvalid() {
+  let cvvRegex = /^[0-9]{3}$/;
+  let invalid = $('#cvv').val().search(cvvRegex) === -1;
+  invalid ? displayError('#cvv', 'CVV must be 3 digits')
+          : clearError('#cvv');
+  return invalid ? 1 : 0;
 }
