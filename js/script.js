@@ -1,4 +1,3 @@
-// Functions named xyzIsInvalid return 1 if xyz file is invalid, 0 otherwise
 
 // Set listener on name
 $('#name').on('keyup', function() {
@@ -31,46 +30,56 @@ function hideColorSelector( hide ) {
 }
 // Initially hide colors selector
 hideColorSelector(true);
+// Save the color options
+const colorOptions = $('#color').html();
 
-// Set listener on theme to update color selector
+// Set listener on shirt theme to update color selector
 $('#design').on('change', function() {
+  // hide the color selector if no theme is selected
   if ( $(this).val() === 'Select Theme' ) {
     hideColorSelector(true);
-  } else {
-    // set string for filtering options based on theme
-    let search;
-    switch ($(this).val()) {
-      case 'js puns':
-        search = 'JS Puns';
-        break;
-      case 'heart js':
-        search =  'I ♥ JS';
-        break;
-      default:
-        search = "?";
-    }
-    $('#color').val(''); // clear previously selected color
-
-    // show or hide options based option content
-    for (let opt of $('#color option')) {
-      if ( $(opt).text().includes(search) ) {
-        // set the selected color if it has no value yet
-        $('#color').val( $('#color').val() || $(opt).val() );
-        $(opt).show();
-      } else {
-        $(opt).hide();
-      }
-    }
-    hideColorSelector(false);
+    return;
   }
+
+  // set string to filter colors based on theme
+  let searchTheme;
+  switch ($(this).val()) {
+    case 'js puns':
+      searchTheme = 'JS Puns';
+      break;
+    case 'heart js':
+      searchTheme = 'I ♥ JS';
+      break;
+    default:
+      searchTheme = '?';
+  }
+
+  // clear previously selected color
+  $('#color').val('');
+  // reset dropdown to contain all options
+  $('#color').html(colorOptions);
+
+  // remove options not related to theme
+  //   (Safari does not support hide/show on dropdown options)
+  for (let opt of $('#color option')) {
+    if ( $(opt).text().includes(searchTheme) ) {
+      // set the color selector if it has no value yet
+      $('#color').val( $('#color').val() || $(opt).val() );
+    } else {
+      $(opt).remove();
+    }
+  }
+
+  // show the color selector
+  hideColorSelector(false);
 });
 
 // ACTIVITIES
 var totalFees = 0;
 var totalActivities = 0;
-$('.activities input').on('change', function() {
 
-  // get the fee on an activity
+$('.activities input').on('change', function() {
+  // function to get the activity fee
   function getFee(activity) {
     let str = activity.parent().text();
     let i = str.indexOf('$');
@@ -81,7 +90,7 @@ $('.activities input').on('change', function() {
     }
   }
 
-  // get the time slot on an activity
+  // function to get the activity time slot
   function getTime(activity) {
     let str = activity.parent().text();
     let i = str.indexOf('— ');
@@ -93,29 +102,28 @@ $('.activities input').on('change', function() {
     }
   }
 
-  // set an activity's disabled state and color
+  // function to disable/enable an activity
   function setDisabled(activity, newDisabled, newColor) {
     activity.prop('disabled', newDisabled);
     activity.parent().css('color', newColor);
   }
 
   let checkbox = $(this);
-  let selectedName = checkbox.attr('name');
-  let fee = getFee(checkbox);
-  let selectedTime = getTime(checkbox);
   let selectionIsChecked = checkbox.prop('checked');
 
   // update total fees
   if (selectionIsChecked) {
-    totalFees += fee;
+    totalFees += getFee(checkbox);
     totalActivities += 1;
   } else {
-    totalFees -= fee;
+    totalFees -= getFee(checkbox);
     totalActivities -= 1;
   }
   $('#total-fees').text(`Total fees $${totalFees}`);
 
-  // update activities with same time slot as selected activity
+  // update other activities with same time slot
+  let selectedName = checkbox.attr('name');
+  let selectedTime = getTime(checkbox);
   for (let activity of $('.activities input')) {
     if ( $(activity).attr('name') !== selectedName &&
          getTime($(activity)) === selectedTime ) {
@@ -124,6 +132,9 @@ $('.activities input').on('change', function() {
         : setDisabled($(activity), false, 'black');
     }
   }
+
+  // check that an activity was selected
+  hasNoActivities();
 });
 
 // PAYMENT
@@ -157,7 +168,7 @@ function CcIsChecked() {
 }
 
 // Set listener on card number
-$('#cc-no').on('keyup', function(event) {
+$('#cc-num').on('keyup', function(event) {
     isCardInvalid();
 });
 
@@ -175,12 +186,14 @@ $('#cvv').on('keyup', function(event) {
 // REGISTER
 $('button[type="submit"]').on('click', function(event) {
   event.preventDefault();
-  let errorCount = isNameInvalid() + isEmailInvalid();
+  let errorCount = isNameInvalid() + isEmailInvalid() + hasNoActivities();
   if ( CcIsChecked() )
     errorCount += isCardInvalid() + isZipInvalid() + isCvvInvalid();
-  if ( errorCount === 0 ) {
+  if ( errorCount ) {
+    alert('Registration was not submitted. Please correct the errors on the form');
+  } else {
     $('form').submit();
-    alert('Your registration is submitted or something similiar happened.');
+    alert('Your registration is submitted, or something.');
   }
 });
 
@@ -191,59 +204,127 @@ function createErrorField(element) {
     after('<p class=error-msg style=display:none></p>');
 }
 
+function errorIsDisplayed(element) {
+  let s = $(element + ' + .error-msg').attr('style');
+  return ! s.includes('display: none') &&
+         ! s.includes('display:none');
+}
+
 function displayError(element, msg) {
-  $(element + ' + .error-msg').html(msg + '<br><br>').show();
-  $(element).addClass('has-error');
+  $(element + ' + .error-msg').html(msg).show();
+
+  // 'display' spacer to keep exp-month below error messages
+  //   if card# or zip or CVV have an error
+  if ( errorIsDisplayed('#cc-num') ||
+       errorIsDisplayed('#zip') ||
+       errorIsDisplayed('#cvv') )
+    { $('#cc-spacer').show(); }
+
+  // add red box around field, except for activities group
+  if ( element !== '.activities' )
+    $(element).addClass('has-error');
 }
 
 function clearError(element) {
   $(element + ' + .error-msg').hide();
-  $(element).removeClass('has-error');
+
+  // 'hide' spacer for exp-month
+  //  if card# nor zip nor CVV have an error
+  if ( ! errorIsDisplayed('#cc-num') &&
+       ! errorIsDisplayed('#zip') &&
+       ! errorIsDisplayed('#cvv') )
+    { $('#cc-spacer').hide(); }
+
+  if ( element !== '.activities' )
+    $(element).removeClass('has-error');
 }
 
-// Create error message field
+// Create error message fields
 createErrorField('#name');
 createErrorField('#mail');
+createErrorField('.activities');
 createErrorField('#cc-num');
 createErrorField('#zip');
 createErrorField('#cvv');
+// create a spacer to hold exp-month below error messages from
+//   fields above it
+$("label[for='exp-month']").before(
+  "<p id='cc-spacer' style='height:130px; display:none;'></p>");
 
 // Name is not blank
 function isNameInvalid() {
   let invalid = $('#name').val().length === 0;
-  invalid ? displayError('#name', 'Name cannot be blank')
+  invalid ? displayError('#name', 'Please enter a name.')
           : clearError('#name');
-  return invalid ? 1 : 0;
+  return invalid;
 }
 
+const emailRegex = /\S+@[a-zA-z0-9\-]+\.[a-zA-Z]{2,3}$/;
 function isEmailInvalid() {
-  let emailRegex = /\S+@[a-zA-z0-9\-]+\.[a-zA-Z]{2,3}$/;
-  let invalid = $('#mail').val().search(emailRegex) === -1;
-  invalid ? displayError('#mail','Email must be a valid email format')
-          : clearError('#mail');
-  return invalid ? 1 : 0;
+  let email = $('#mail').val();
+  if ( email.length === 0 ) {
+    displayError('#mail', 'Please enter an email address.');
+    return true;
+  } else if ( ! email.match(emailRegex) ) {
+      displayError('#mail','Email must be a valid email address.');
+      return true;
+  } else {
+    clearError('#mail');
+    return false;
+  }
 }
 
+function hasNoActivities() {
+  if ( totalActivities === 0 ) {
+    displayError('.activities', 'Please select at least one activity');
+    return true;
+  } else {
+    clearError('.activities');
+    return false;
+  }
+}
+
+const ccRegex = /^[0-9]{13,16}$/;
 function isCardInvalid() {
-  let ccRegex = /^[0-9]{13,16}$/;
-  let invalid = $('#cc-num').val().search(ccRegex) === -1;
-  invalid ? displayError('#cc-num', 'Card number must be 13 to 16 digits')
-          : clearError('#cc-num');
-  return invalid ? 1 : 0;
+  let card = $('#cc-num').val();
+  if ( card.length === 0 ) {
+    displayError('#cc-num', 'Please enter a card number.');
+    return true;
+  } else if ( ! card.match(ccRegex) ) {
+    displayError('#cc-num', 'Card number must be 13 to 16 digits')
+    return true;
+  } else {
+    clearError('#cc-num');
+    return false;
+  }
 }
 
+const zipRegex = /^[0-9]{5}$/;
 function isZipInvalid() {
-  let zipRegex = /^[0-9]{5}$/;
-  let invalid = $('#zip').val().search(zipRegex) === -1;
-  invalid ? displayError('#zip', 'Zip code must be 5 digits')
-          : clearError('#zip');
-  return invalid ? 1 : 0;
+  let zip = $('#zip').val();
+  if ( zip.length === 0 ) {
+    displayError('#zip', 'Please enter a zip code');
+    return true;
+  } else if ( ! zip.match(zipRegex) ) {
+    displayError('#zip', 'Zip code must be 5 digits');
+    return true;
+  } else {
+    clearError('#zip');
+    return false;
+  }
 }
 
+const cvvRegex = /^[0-9]{3}$/;
 function isCvvInvalid() {
-  let cvvRegex = /^[0-9]{3}$/;
-  let invalid = $('#cvv').val().search(cvvRegex) === -1;
-  invalid ? displayError('#cvv', 'CVV must be 3 digits')
-          : clearError('#cvv');
-  return invalid ? 1 : 0;
+  let cvv = $('#cvv').val();
+  if ( cvv.length === 0 ) {
+    displayError('#cvv', 'Please enter the card CVV');
+    return true;
+  } else if ( ! cvv.match(cvvRegex) ) {
+    displayError('#cvv', 'CVV must be 3 digits');
+    return true;
+  } else {
+    clearError('#cvv');
+    return false;
+  }
 }
