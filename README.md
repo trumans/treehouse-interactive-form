@@ -28,6 +28,8 @@ CODING COMMENTS
 Project includes the normalize.css
 Project uses jQuery, included with the jQuery CDN.
 
+When the page is loaded the cursor has focus in the name field.
+
 All input fields are created in index.html.  Other fields that require JavaScript support are created by JS.
 
 Error messages fields are added as a sibling after the related input field. Shared functions handle displaying the error message and adding a red border to the input file, along with hiding the message field and removing the red border.
